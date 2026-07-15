@@ -1,0 +1,51 @@
+name: Benchmark
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  bench-compare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies (branch)
+        run: pnpm install --frozen-lockfile
+
+      - name: Bench branch
+        run: pnpm exec vitest bench --run --outputJson /tmp/branch-bench.json
+
+      - name: Add worktree for base branch
+        run: |
+          git fetch origin "${{ github.event.pull_request.base.ref }}" --depth=1
+          git worktree add /tmp/base-worktree FETCH_HEAD
+
+      - name: Install dependencies (base)
+        working-directory: /tmp/base-worktree
+        run: pnpm install --frozen-lockfile
+
+      - name: Bench base
+        working-directory: /tmp/base-worktree
+        run: pnpm exec vitest bench --run --outputJson /tmp/base-bench.json
+
+      # Both benchmarks run on this same job/runner, back to back, so unlike
+      # the local `pnpm run bench` fixture flow there's no cross-machine
+      # baseline problem here - the comparison is apples to apples by construction.
+      - name: Compare branch against base
+        run: >
+          node scripts/compare-bench-reports.mjs
+          /tmp/base-bench.json
+          /tmp/branch-bench.json
+          "${{ github.event.pull_request.base.ref }}"
+          "${{ github.head_ref }}"

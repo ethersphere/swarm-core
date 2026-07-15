@@ -1,0 +1,11 @@
+{
+  "keccak256 4096 bytes": {
+    "mean": 0.046359905432968466,
+    "hz": 21570.363240837378
+  },
+  "_env": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "ci": false
+  }
+}
