@@ -1,12 +1,54 @@
+import { base32ToUint8Array, concatBytes, uint8ArrayToBase32 } from './encoding.js'
 import { Bytes } from './bytes.js'
 
-// CID string support (the "bah5..." manifest/feed CID encoding) is deferred -
-// it needs a whole separate CID conversion module not yet ported. This class
-// covers the common case: a raw 32-byte (or 64-byte, for encrypted references) address.
+const SWARM_MANIFEST_CODEC = 0xfa
+const SWARM_FEED_CODEC = 0xfb
+
+// Decodes a "bah5..." CID string into its reference bytes. The CID is a
+// multibase-base32-lowercase-prefixed self-describing header (version=1,
+// codec, "unknown" multihash, sha256, 32-byte digest length) followed by the
+// base32-encoded 32-byte reference.
+function decodeCid(cid: string): Uint8Array {
+  const bytes = base32ToUint8Array(cid.toUpperCase().slice(1))
+  const codec = bytes[1]
+
+  if (codec !== SWARM_MANIFEST_CODEC && codec !== SWARM_FEED_CODEC) {
+    throw new Error('Unknown codec')
+  }
+
+  return bytes.slice(-32)
+}
+
 export class Reference extends Bytes {
   static readonly LENGTH = 32
 
   constructor(bytes: Uint8Array | string | Bytes) {
-    super(bytes, [32, 64])
+    if (typeof bytes === 'string' && bytes.startsWith('bah5')) {
+      super(decodeCid(bytes), 32)
+    } else {
+      super(bytes, [32, 64])
+    }
+  }
+
+  toCid(type: 'feed' | 'manifest'): string {
+    const header = concatBytes(
+      new Uint8Array([1]), // version
+      new Uint8Array([type === 'feed' ? SWARM_FEED_CODEC : SWARM_MANIFEST_CODEC]),
+      new Uint8Array([1]), // "unknown" multihash
+      new Uint8Array([27]), // sha256
+      new Uint8Array([32]), // 32-byte digest length
+    )
+
+    return `b${uint8ArrayToBase32(header).replace(/=+$/, '')}${this.toBase32().replace(/=+$/, '')}`.toLowerCase()
+  }
+
+  static isValid(value: string): boolean {
+    try {
+      new Reference(value)
+
+      return true
+    } catch {
+      return false
+    }
   }
 }

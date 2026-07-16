@@ -80,9 +80,23 @@ const CHUNK_EXPORTS = [
   'makeEncryptedReplicas',
 ]
 
-const ERASURE_CODING_EXPORTS = ['rsEncode']
+const ERASURE_CODING_EXPORTS = [
+  'rsEncode',
+  'getMaxShards',
+  'getParities',
+  'makeErasureBatch',
+  'makeIntermediateChunkHandler',
+]
 
-const STAMPER_EXPORTS = ['getStampTheoreticalBytes', 'getStampUsage', 'convertEnvelopeToMarshaledStamp', 'marshalStamp']
+const STAMPER_EXPORTS = [
+  'getStampTheoreticalBytes',
+  'getStampUsage',
+  'convertEnvelopeToMarshaledStamp',
+  'marshalStamp',
+  'getDepthForSize',
+  'getStampEffectiveBytes',
+  'getStampEffectiveBytesBreakpoints',
+]
 
 // Exports that are data, not callables (e.g. a fixed address constant) -
 // exempted from the "every export is a function" check below.
