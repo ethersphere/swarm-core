@@ -1,0 +1,11 @@
+{
+  "_env": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "ci": false
+  },
+  "encryptData 4096 bytes": {
+    "mean": 0.4853091784675049,
+    "hz": 2060.5421128810517
+  }
+}

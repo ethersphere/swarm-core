@@ -1,0 +1,11 @@
+{
+  "_env": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "ci": false
+  },
+  "rsEncode 4 x 4096-byte shards, 2 parity": {
+    "mean": 0.09259290964076229,
+    "hz": 10799.963019628112
+  }
+}
