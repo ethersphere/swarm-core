@@ -70,6 +70,9 @@ const CHUNK_EXPORTS = [
   'unmarshalContentAddressedChunk',
   'MAX_PAYLOAD_SIZE',
   'MIN_PAYLOAD_SIZE',
+  'ChunkBuilder',
+  'ChunkSplitter',
+  'ChunkJoiner',
 ]
 
 const ERASURE_CODING_EXPORTS = ['rsEncode']

@@ -1,0 +1,10 @@
+import { bench } from 'vitest'
+import { ChunkSplitter } from '../src/chunk/splitter.js'
+
+// ~1MB - large enough to exercise multiple levels of the tree, not just a
+// single leaf chunk.
+const data = new Uint8Array(1024 * 1024).fill(0x42)
+
+bench('ChunkSplitter.root 1MB payload', async () => {
+  await ChunkSplitter.root(data)
+})

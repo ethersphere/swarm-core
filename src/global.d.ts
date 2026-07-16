@@ -10,3 +10,9 @@ declare class TextEncoder {
 declare class TextDecoder {
   decode(input?: Uint8Array | ArrayBuffer): string
 }
+
+// Same reasoning: `crypto.getRandomValues` is a universal WHATWG global
+// (Node 19+, all browsers, Deno, Bun) used for secure random key generation.
+declare const crypto: {
+  getRandomValues<T extends ArrayBufferView>(array: T): T
+}
