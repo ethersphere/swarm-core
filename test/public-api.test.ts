@@ -73,6 +73,11 @@ const CHUNK_EXPORTS = [
   'ChunkBuilder',
   'ChunkSplitter',
   'ChunkJoiner',
+  'makeSOCAddress',
+  'makeSingleOwnerChunk',
+  'unmarshalSingleOwnerChunk',
+  'makeReplicas',
+  'makeEncryptedReplicas',
 ]
 
 const ERASURE_CODING_EXPORTS = ['rsEncode']

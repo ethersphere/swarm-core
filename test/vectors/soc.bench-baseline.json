@@ -1,0 +1,15 @@
+{
+  "_env": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "ci": false
+  },
+  "makeSingleOwnerChunk (sign) 4096-byte payload": {
+    "mean": 0.4104011944216577,
+    "hz": 2436.64008193059
+  },
+  "unmarshalSingleOwnerChunk (recover + verify) 4096-byte payload": {
+    "mean": 1.64009670491802,
+    "hz": 609.7201445508574
+  }
+}
