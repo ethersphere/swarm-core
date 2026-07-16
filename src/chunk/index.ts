@@ -1,2 +1,5 @@
 export { Uint8ArrayReader, Uint8ArrayWriter } from './byte-cursor.js'
 export { REPLICAS_OWNER } from './soc.js'
+export { calculateChunkAddress } from './bmt.js'
+export { makeContentAddressedChunk, MAX_PAYLOAD_SIZE, MIN_PAYLOAD_SIZE, unmarshalContentAddressedChunk } from './cac.js'
+export type { Chunk } from './cac.js'

@@ -40,6 +40,7 @@ const BYTES_EXPORTS = [
   'FeedIndex',
   'Identifier',
   'PeerAddress',
+  'Reference',
   'Span',
   'Topic',
   'TransactionId',
@@ -60,7 +61,16 @@ const CRYPTO_EXPORTS = [
 
 const ENCRYPTION_EXPORTS = ['decryptChunk', 'encryptData', 'encryptSegments', 'encryptSpan', 'xorCypher']
 
-const CHUNK_EXPORTS = ['Uint8ArrayReader', 'Uint8ArrayWriter', 'REPLICAS_OWNER']
+const CHUNK_EXPORTS = [
+  'Uint8ArrayReader',
+  'Uint8ArrayWriter',
+  'REPLICAS_OWNER',
+  'calculateChunkAddress',
+  'makeContentAddressedChunk',
+  'unmarshalContentAddressedChunk',
+  'MAX_PAYLOAD_SIZE',
+  'MIN_PAYLOAD_SIZE',
+]
 
 const ERASURE_CODING_EXPORTS = ['rsEncode']
 
@@ -68,7 +78,7 @@ const STAMPER_EXPORTS = ['getStampTheoreticalBytes', 'getStampUsage', 'convertEn
 
 // Exports that are data, not callables (e.g. a fixed address constant) -
 // exempted from the "every export is a function" check below.
-const NON_FUNCTION_EXPORTS = new Set(['REPLICAS_OWNER'])
+const NON_FUNCTION_EXPORTS = new Set(['REPLICAS_OWNER', 'MAX_PAYLOAD_SIZE', 'MIN_PAYLOAD_SIZE'])
 
 function assertExactExports(module: object, expectedNames: string[], label: string) {
   const actualNames = Object.keys(module).sort()
