@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import * as bytesModule from '../src/bytes/index.js'
+import * as chunkModule from '../src/chunk/index.js'
 import * as cryptoModule from '../src/crypto/index.js'
+import * as encryptionModule from '../src/encryption/index.js'
+import * as erasureCodingModule from '../src/erasure-coding/index.js'
+import * as stamperModule from '../src/stamper/index.js'
 import * as rootModule from '../src/index.js'
 
 // This is the library's public contract: every subpath's exact export list.
@@ -8,7 +12,38 @@ import * as rootModule from '../src/index.js'
 // module means either an accidental omission or an accidental public leak
 // (e.g. an internal constant that slipped into a barrel file).
 
-const BYTES_EXPORTS = ['concatBytes', 'numberToUint256', 'uint256ToNumber', 'uint8ArrayToHex']
+const BYTES_EXPORTS = [
+  'base32ToUint8Array',
+  'base64ToUint8Array',
+  'binaryToUint8Array',
+  'concatBytes',
+  'hexToUint8Array',
+  'numberToUint16',
+  'numberToUint256',
+  'numberToUint32',
+  'numberToUint64',
+  'numberToUint8',
+  'partition',
+  'sliceBytes',
+  'uint16ToNumber',
+  'uint256ToNumber',
+  'uint32ToNumber',
+  'uint64ToNumber',
+  'uint8ArrayToBase32',
+  'uint8ArrayToBase64',
+  'uint8ArrayToBinary',
+  'uint8ArrayToHex',
+  'uint8ToNumber',
+  'BatchId',
+  'Bytes',
+  'EthAddress',
+  'FeedIndex',
+  'Identifier',
+  'PeerAddress',
+  'Span',
+  'Topic',
+  'TransactionId',
+]
 
 const CRYPTO_EXPORTS = [
   'keccak256',
@@ -23,10 +58,26 @@ const CRYPTO_EXPORTS = [
   'verifySignature',
 ]
 
+const ENCRYPTION_EXPORTS = ['decryptChunk', 'encryptData', 'encryptSegments', 'encryptSpan', 'xorCypher']
+
+const CHUNK_EXPORTS = ['Uint8ArrayReader', 'Uint8ArrayWriter', 'REPLICAS_OWNER']
+
+const ERASURE_CODING_EXPORTS = ['rsEncode']
+
+const STAMPER_EXPORTS = ['getStampTheoreticalBytes', 'getStampUsage', 'convertEnvelopeToMarshaledStamp', 'marshalStamp']
+
+// Exports that are data, not callables (e.g. a fixed address constant) -
+// exempted from the "every export is a function" check below.
+const NON_FUNCTION_EXPORTS = new Set(['REPLICAS_OWNER'])
+
 function assertExactExports(module: object, expectedNames: string[], label: string) {
   const actualNames = Object.keys(module).sort()
   expect(actualNames, `${label}: unexpected export list`).toEqual([...expectedNames].sort())
   for (const name of expectedNames) {
+    if (NON_FUNCTION_EXPORTS.has(name)) {
+      expect((module as Record<string, unknown>)[name], `${label}.${name} should be defined`).toBeDefined()
+      continue
+    }
     expect(typeof (module as Record<string, unknown>)[name], `${label}.${name} should be a function`).toBe('function')
   }
 }
@@ -40,7 +91,34 @@ describe('public API contract', () => {
     assertExactExports(cryptoModule, CRYPTO_EXPORTS, 'crypto')
   })
 
+  it('swarm-core-lib/encryption exports exactly the expected functions', () => {
+    assertExactExports(encryptionModule, ENCRYPTION_EXPORTS, 'encryption')
+  })
+
+  it('swarm-core-lib/chunk exports exactly the expected classes and constants', () => {
+    assertExactExports(chunkModule, CHUNK_EXPORTS, 'chunk')
+  })
+
+  it('swarm-core-lib/erasure-coding exports exactly the expected functions', () => {
+    assertExactExports(erasureCodingModule, ERASURE_CODING_EXPORTS, 'erasure-coding')
+  })
+
+  it('swarm-core-lib/stamper exports exactly the expected functions', () => {
+    assertExactExports(stamperModule, STAMPER_EXPORTS, 'stamper')
+  })
+
   it('swarm-core-lib (root) re-exports the union of every implemented subpath', () => {
-    assertExactExports(rootModule, [...BYTES_EXPORTS, ...CRYPTO_EXPORTS], 'root')
+    assertExactExports(
+      rootModule,
+      [
+        ...BYTES_EXPORTS,
+        ...CHUNK_EXPORTS,
+        ...CRYPTO_EXPORTS,
+        ...ENCRYPTION_EXPORTS,
+        ...ERASURE_CODING_EXPORTS,
+        ...STAMPER_EXPORTS,
+      ],
+      'root',
+    )
   })
 })

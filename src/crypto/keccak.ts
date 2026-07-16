@@ -1,3 +1,5 @@
+import { partition } from '../bytes/encoding.js'
+
 type KeccakState = [
   number,
   number,
@@ -269,14 +271,6 @@ function keccakPermutate(state: KeccakState) {
     state[0] ^= IOTA_CONSTANTS[round * 2]!
     state[1] ^= IOTA_CONSTANTS[round * 2 + 1]!
   }
-}
-
-function partition(bytes: Uint8Array, size: number): Uint8Array[] {
-  const partitions: Uint8Array[] = []
-  for (let i = 0; i < bytes.length; i += size) {
-    partitions.push(bytes.subarray(i, i + size))
-  }
-  return partitions
 }
 
 function divideToBlocks(bytes: Uint8Array, paddingByte: 0b00000001 | 0b00000110): number[][] {

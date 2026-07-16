@@ -1,3 +1,11 @@
+export function partition(bytes: Uint8Array, size: number): Uint8Array[] {
+  const partitions: Uint8Array[] = []
+  for (let i = 0; i < bytes.length; i += size) {
+    partitions.push(bytes.subarray(i, i + size))
+  }
+  return partitions
+}
+
 export function concatBytes(...arrays: Uint8Array[]): Uint8Array {
   const totalLength = arrays.reduce((sum, array) => sum + array.length, 0)
   const result = new Uint8Array(totalLength)
@@ -44,4 +52,141 @@ export function uint256ToNumber(bytes: Uint8Array, endian: 'LE' | 'BE'): bigint 
     result = (result << 8n) | BigInt(bytes[i]!)
   }
   return result
+}
+
+export function hexToUint8Array(hex: string): Uint8Array {
+  const clean = hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex
+  const result = new Uint8Array(clean.length / 2)
+  for (let i = 0; i < result.length; i++) {
+    result[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16)
+  }
+  return result
+}
+
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+
+function baseToUint8Array(baseString: string, baseChars: string): Uint8Array {
+  const padding = '='
+  const base = baseChars.length
+  let bits = 0
+  let value = 0
+  const array: number[] = []
+  for (let i = 0; i < baseString.length; i++) {
+    const character = baseString.charAt(i)
+    if (character === padding) {
+      break
+    }
+    const index = baseChars.indexOf(character)
+    if (index === -1) {
+      throw new Error(`Invalid character: ${character}`)
+    }
+    value = (value << Math.log2(base)) | index
+    bits += Math.log2(base)
+    if (bits >= 8) {
+      bits -= 8
+      array.push((value >> bits) & 0xff)
+    }
+  }
+  return new Uint8Array(array)
+}
+
+function uint8ArrayToBase(bytes: Uint8Array, baseChars: string): string {
+  const base = baseChars.length
+  let bits = 0
+  let value = 0
+  let result = ''
+  for (const byte of bytes) {
+    value = (value << 8) | byte
+    bits += 8
+    while (bits >= Math.log2(base)) {
+      bits -= Math.log2(base)
+      result += baseChars.charAt((value >> bits) & (base - 1))
+    }
+  }
+  if (bits > 0) {
+    result += baseChars.charAt((value << (Math.log2(base) - bits)) & (base - 1))
+  }
+  if (result.length % 4 !== 0) {
+    result += '='.repeat(4 - (result.length % 4))
+  }
+  return result
+}
+
+export function base64ToUint8Array(base64: string): Uint8Array {
+  return baseToUint8Array(base64, BASE64_CHARS)
+}
+
+export function uint8ArrayToBase64(bytes: Uint8Array): string {
+  return uint8ArrayToBase(bytes, BASE64_CHARS)
+}
+
+export function base32ToUint8Array(base32: string): Uint8Array {
+  return baseToUint8Array(base32, BASE32_CHARS)
+}
+
+export function uint8ArrayToBase32(bytes: Uint8Array): string {
+  return uint8ArrayToBase(bytes, BASE32_CHARS)
+}
+
+export function uint8ArrayToBinary(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map(byte => byte.toString(2).padStart(8, '0'))
+    .join('')
+}
+
+export function binaryToUint8Array(binary: string): Uint8Array {
+  const result = new Uint8Array(Math.ceil(binary.length / 8))
+  for (let i = 0; i < result.length; i++) {
+    result[i] = parseInt(binary.slice(i * 8, i * 8 + 8), 2)
+  }
+  return result
+}
+
+export function sliceBytes(bytes: Uint8Array, lengths: number[]): Uint8Array[] {
+  const result: Uint8Array[] = []
+  let offset = 0
+  for (const length of lengths) {
+    result.push(bytes.subarray(offset, offset + length))
+    offset += length
+  }
+  return result
+}
+
+export function numberToUint8(value: number): Uint8Array {
+  return new Uint8Array([value])
+}
+
+export function uint8ToNumber(bytes: Uint8Array): number {
+  return bytes[0]!
+}
+
+export function numberToUint16(value: number, endian: 'LE' | 'BE'): Uint8Array {
+  const buffer = new ArrayBuffer(2)
+  new DataView(buffer).setUint16(0, value, endian === 'LE')
+  return new Uint8Array(buffer)
+}
+
+export function uint16ToNumber(bytes: Uint8Array, endian: 'LE' | 'BE'): number {
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint16(0, endian === 'LE')
+}
+
+export function numberToUint32(value: number, endian: 'LE' | 'BE'): Uint8Array {
+  const buffer = new ArrayBuffer(4)
+  new DataView(buffer).setUint32(0, value, endian === 'LE')
+  return new Uint8Array(buffer)
+}
+
+export function uint32ToNumber(bytes: Uint8Array, endian: 'LE' | 'BE'): number {
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0, endian === 'LE')
+}
+
+export function numberToUint64(value: bigint, endian: 'LE' | 'BE'): Uint8Array {
+  const buffer = new ArrayBuffer(8)
+  new DataView(buffer).setBigUint64(0, value, endian === 'LE')
+  return new Uint8Array(buffer)
+}
+
+export function uint64ToNumber(bytes: Uint8Array, endian: 'LE' | 'BE'): bigint {
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getBigUint64(0, endian === 'LE')
 }
