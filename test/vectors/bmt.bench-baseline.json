@@ -1,0 +1,11 @@
+{
+  "_env": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "ci": false
+  },
+  "calculateChunkAddress full 4096-byte chunk": {
+    "mean": 0.24735437833827786,
+    "hz": 4042.782693874196
+  }
+}
