@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { getMaxShards, getParities } from '../src/erasure-coding/levels.js'
+import {
+  approximateOverheadForRedundancyLevel,
+  getMaxShards,
+  getParities,
+  getRedundancyStat,
+  getRedundancyStats,
+} from '../src/erasure-coding/levels.js'
 
 describe('getParities', () => {
   it('returns 0 for level NONE (0) regardless of shard count', () => {
@@ -42,5 +48,56 @@ describe('getMaxShards', () => {
   it('halves the remaining capacity after parity when encrypted', () => {
     // getParities(1, 64, true) === 9 (64 >= 47 threshold)
     expect(getMaxShards(1, true)).toBe(Math.floor((128 - 9) / 2))
+  })
+})
+
+describe('approximateOverheadForRedundancyLevel', () => {
+  it('is 0 for level NONE (0)', () => {
+    expect(approximateOverheadForRedundancyLevel(100, 0, false)).toBe(0)
+  })
+
+  it('is 0 for a non-positive chunk count', () => {
+    expect(approximateOverheadForRedundancyLevel(0, 1, false)).toBe(0)
+    expect(approximateOverheadForRedundancyLevel(-5, 1, false)).toBe(0)
+  })
+
+  it('is getParities(level, chunks, encrypted) / chunks', () => {
+    expect(approximateOverheadForRedundancyLevel(95, 1, false)).toBeCloseTo(getParities(1, 95, false) / 95)
+    expect(approximateOverheadForRedundancyLevel(47, 1, true)).toBeCloseTo(getParities(1, 47, true) / 47)
+  })
+
+  it('decreases as more chunks share the same fixed parity count', () => {
+    // getParities(1, 69, false) and getParities(1, 94, false) are both 8
+    // (same threshold bucket), so more chunks means a lower overhead ratio.
+    expect(getParities(1, 69, false)).toBe(getParities(1, 94, false))
+    expect(approximateOverheadForRedundancyLevel(94, 1, false)).toBeLessThan(
+      approximateOverheadForRedundancyLevel(69, 1, false),
+    )
+  })
+})
+
+describe('getRedundancyStats / getRedundancyStat', () => {
+  it('returns all four non-NONE levels with matching labels and values', () => {
+    const stats = getRedundancyStats()
+    expect(stats.medium).toEqual({ label: 'medium', value: 1, errorTolerance: 0.01 })
+    expect(stats.strong).toEqual({ label: 'strong', value: 2, errorTolerance: 0.05 })
+    expect(stats.insane).toEqual({ label: 'insane', value: 3, errorTolerance: 0.1 })
+    expect(stats.paranoid).toEqual({ label: 'paranoid', value: 4, errorTolerance: 0.5 })
+  })
+
+  it('looks up by numeric level', () => {
+    expect(getRedundancyStat(1)).toEqual(getRedundancyStats().medium)
+    expect(getRedundancyStat(4)).toEqual(getRedundancyStats().paranoid)
+  })
+
+  it('looks up by case-insensitive name', () => {
+    expect(getRedundancyStat('STRONG')).toEqual(getRedundancyStats().strong)
+    expect(getRedundancyStat('insane')).toEqual(getRedundancyStats().insane)
+  })
+
+  it('throws for an unknown level', () => {
+    expect(() => getRedundancyStat('bogus')).toThrow(/Unknown redundancy level/)
+    expect(() => getRedundancyStat(0)).toThrow(/Unknown redundancy level/)
+    expect(() => getRedundancyStat(99)).toThrow(/Unknown redundancy level/)
   })
 })

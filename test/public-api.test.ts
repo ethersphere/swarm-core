@@ -103,6 +103,8 @@ const STAMPER_EXPORTS = [
   'getDepthForSize',
   'getStampEffectiveBytes',
   'getStampEffectiveBytesBreakpoints',
+  'stamp',
+  'Stamper',
 ]
 
 const MANTARAY_EXPORTS = ['Fork', 'MantarayNode']

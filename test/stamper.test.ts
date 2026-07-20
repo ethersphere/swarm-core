@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { BatchId } from '../src/bytes/batch-id.js'
+import { numberToUint256, uint16ToNumber } from '../src/bytes/encoding.js'
+import { PrivateKey } from '../src/bytes/private-key.js'
+import { Signature } from '../src/bytes/signature.js'
 import {
   getDepthForSize,
   getStampEffectiveBytes,
@@ -8,6 +11,17 @@ import {
   getStampUsage,
 } from '../src/stamper/capacity.js'
 import { convertEnvelopeToMarshaledStamp, marshalStamp } from '../src/stamper/marshal.js'
+import { stamp, Stamper } from '../src/stamper/stamper.js'
+
+// Two addresses guaranteed to land in the same bucket (identical first 2
+// bytes) so bucket-collision behavior is exercised deterministically.
+function addressInBucket(bucket: number, fill: number): Uint8Array {
+  const address = new Uint8Array(32).fill(fill)
+  address[0] = (bucket >> 8) & 0xff
+  address[1] = bucket & 0xff
+
+  return address
+}
 
 describe('getStampUsage', () => {
   it('is 0 when utilization is 0', () => {
@@ -123,5 +137,107 @@ describe('convertEnvelopeToMarshaledStamp', () => {
     const viaDirect = marshalStamp(signature, batchId.toUint8Array(), timestamp, index)
 
     expect(viaEnvelope.toHex()).toBe(viaDirect.toHex())
+  })
+})
+
+describe('stamp', () => {
+  const privateKey = new PrivateKey(numberToUint256(12345n, 'BE'))
+  const batchId = new Uint8Array(32).fill(7)
+  const address = new Uint8Array(32).fill(3)
+
+  it('produces an envelope whose signature verifies against the signer’s own address', () => {
+    const envelope = stamp(privateKey, batchId, address, 0, 1_700_000_000_000)
+
+    expect(envelope.issuer).toEqual(privateKey.publicKey().address().toUint8Array())
+
+    const digest = new Uint8Array(32 + 32 + 8 + 8)
+    digest.set(address, 0)
+    digest.set(batchId, 32)
+    digest.set(envelope.index, 64)
+    digest.set(envelope.timestamp, 72)
+
+    const signature = new Signature(envelope.signature)
+    expect(signature.isValid(digest, privateKey.publicKey().address())).toBe(true)
+  })
+
+  it('encodes the index as bucket (top 2 address bytes) || slot, both 4-byte BE', () => {
+    const envelope = stamp(privateKey, batchId, address, 42)
+    expect(envelope.index.length).toBe(8)
+
+    const bucketField = new DataView(envelope.index.buffer, envelope.index.byteOffset, 4).getUint32(0, false)
+    const slotField = new DataView(envelope.index.buffer, envelope.index.byteOffset + 4, 4).getUint32(0, false)
+    expect(bucketField).toBe(uint16ToNumber(address, 'BE'))
+    expect(slotField).toBe(42)
+  })
+
+  it('encodes the timestamp as unix milliseconds converted to nanoseconds', () => {
+    const envelope = stamp(privateKey, batchId, address, 0, 1_700_000_000_000)
+    const nanos = new DataView(envelope.timestamp.buffer, envelope.timestamp.byteOffset, 8).getBigUint64(0, false)
+    expect(nanos).toBe(1_700_000_000_000n * 1_000_000n)
+  })
+
+  it('accepts a raw bigint-derived key just as well as a PrivateKey instance', () => {
+    const raw = numberToUint256(12345n, 'BE')
+    const envelope = stamp(raw, batchId, address, 0, 1_700_000_000_000)
+    const viaInstance = stamp(privateKey, batchId, address, 0, 1_700_000_000_000)
+
+    expect(envelope.signature).toEqual(viaInstance.signature)
+  })
+})
+
+describe('Stamper', () => {
+  const privateKey = new PrivateKey(numberToUint256(999n, 'BE'))
+  const batchId = new Uint8Array(32).fill(1)
+
+  it('fromBlank starts with all-empty buckets', () => {
+    const stamper = Stamper.fromBlank(privateKey, batchId, 20)
+    expect(stamper.getState().length).toBe(65536)
+    expect(stamper.getState().every(v => v === 0)).toBe(true)
+  })
+
+  it('assigns increasing slots to chunks landing in the same bucket', () => {
+    const stamper = Stamper.fromBlank(privateKey, batchId, 20)
+    const a = addressInBucket(5, 1)
+    const b = addressInBucket(5, 2)
+
+    const envelopeA = stamper.stamp(a)
+    const envelopeB = stamper.stamp(b)
+
+    const slotOf = (index: Uint8Array) => new DataView(index.buffer, index.byteOffset + 4, 4).getUint32(0, false)
+    expect(slotOf(envelopeA.index)).toBe(0)
+    expect(slotOf(envelopeB.index)).toBe(1)
+  })
+
+  it('produces the same envelope as the standalone stamp() function for the same slot', () => {
+    const stamper = Stamper.fromBlank(privateKey, batchId, 20)
+    const address = addressInBucket(10, 4)
+
+    const viaStamper = stamper.stamp(address, 1_700_000_000_000)
+    const viaFunction = stamp(privateKey, batchId, address, 0, 1_700_000_000_000)
+
+    expect(viaStamper).toEqual(viaFunction)
+  })
+
+  it('throws once a bucket reaches its depth-derived capacity', () => {
+    // depth 17 -> maxSlot = 2^(17-16) = 2
+    const stamper = Stamper.fromBlank(privateKey, batchId, 17)
+    const bucket = 3
+
+    stamper.stamp(addressInBucket(bucket, 1))
+    stamper.stamp(addressInBucket(bucket, 2))
+    expect(() => stamper.stamp(addressInBucket(bucket, 3))).toThrow(/full/)
+  })
+
+  it('fromState resumes bucket heights from a previously persisted state', () => {
+    const stamper = Stamper.fromBlank(privateKey, batchId, 20)
+    const address = addressInBucket(8, 1)
+    stamper.stamp(address)
+    stamper.stamp(address)
+
+    const resumed = Stamper.fromState(privateKey, batchId, stamper.getState(), 20)
+    const envelope = resumed.stamp(address)
+
+    const slotOf = (index: Uint8Array) => new DataView(index.buffer, index.byteOffset + 4, 4).getUint32(0, false)
+    expect(slotOf(envelope.index)).toBe(2)
   })
 })
