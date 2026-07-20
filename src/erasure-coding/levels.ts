@@ -100,6 +100,7 @@ export function approximateOverheadForRedundancyLevel(chunks: number, level: num
   return getParities(level, chunks, encrypted) / chunks
 }
 
+/** Descriptive stats for a redundancy level, as returned by getRedundancyStat(s). */
 export interface RedundancyStat {
   label: string
   value: number

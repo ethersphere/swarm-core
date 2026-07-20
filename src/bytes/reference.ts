@@ -19,6 +19,11 @@ function decodeCid(cid: string): Uint8Array {
   return bytes.slice(-32)
 }
 
+/**
+ * A Swarm chunk/manifest reference: 32 bytes for an unencrypted address, or
+ * 64 bytes (address || decryption key) for an encrypted one. Also accepts a
+ * `"bah5..."` CID string, decoding it to the underlying reference bytes.
+ */
 export class Reference extends Bytes {
   static readonly LENGTH = 32
 
@@ -30,6 +35,9 @@ export class Reference extends Bytes {
     }
   }
 
+  /**
+   * Encodes the reference as a `"bah5..."` CID string of the given type.
+   */
   toCid(type: 'feed' | 'manifest'): string {
     const header = concatBytes(
       new Uint8Array([1]), // version
@@ -42,6 +50,10 @@ export class Reference extends Bytes {
     return `b${uint8ArrayToBase32(header).replace(/=+$/, '')}${this.toBase32().replace(/=+$/, '')}`.toLowerCase()
   }
 
+  /**
+   * Returns whether `value` parses as a valid Reference (raw hex, 32/64-byte
+   * bytes, or a `"bah5..."` CID string).
+   */
   static isValid(value: string): boolean {
     try {
       new Reference(value)

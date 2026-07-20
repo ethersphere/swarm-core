@@ -12,8 +12,10 @@ import { calculateChunkAddress } from './bmt.js'
 import { Chunk } from './cac.js'
 import { ChunkBuilder } from './splitter.js'
 
-// Ethereum address derived from the fixed replicas private key below -
-// constant across all Bee nodes.
+/**
+ * Ethereum address derived from the fixed replicas private key below -
+ * constant across all Bee nodes.
+ */
 export const REPLICAS_OWNER = hexToUint8Array('dc5b20847f43d67928f49cd4f85d696b5a7617b5')
 
 // Private key with byte 0 = 1 (big-endian), i.e. 2^248 - the fixed signer

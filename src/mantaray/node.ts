@@ -101,10 +101,17 @@ export class MantarayNode {
     this.type = options?.type ?? null
   }
 
+  /**
+   * The full path from the tree's root to this node, concatenating every
+   * ancestor's own path segment.
+   */
   get fullPath(): Uint8Array {
     return concatBytes(this.parent?.fullPath ?? new Uint8Array(0), this.path)
   }
 
+  /**
+   * {@link fullPath} decoded as UTF-8.
+   */
   get fullPathString(): string {
     return DECODER.decode(this.fullPath)
   }
@@ -381,6 +388,10 @@ export class MantarayNode {
     return result
   }
 
+  /**
+   * Computes this node's type byte (value/edge/path-separator/metadata
+   * flags) from its current in-memory state.
+   */
   determineType(): number {
     let type = 0
     const nullAddress = new Uint8Array(this.targetAddress.length)

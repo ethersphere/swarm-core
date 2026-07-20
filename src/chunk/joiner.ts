@@ -10,6 +10,10 @@ function isAllZero(bytes: Uint8Array): boolean {
   return true
 }
 
+/**
+ * Reconstructs the original data behind a chunk tree (as produced by
+ * ChunkSplitter), fetching chunks on demand via a caller-supplied callback.
+ */
 export class ChunkJoiner {
   private refSize: number
   private encrypted: boolean
@@ -27,6 +31,9 @@ export class ChunkJoiner {
     this.refSize = encrypted ? 64 : 32
   }
 
+  /**
+   * Fetches and reconstructs the full data behind an unencrypted chunk tree.
+   */
   static async collect(address: Uint8Array, fetch: (address: Uint8Array) => Promise<Uint8Array>): Promise<Uint8Array> {
     const parts: Uint8Array[] = []
     await new ChunkJoiner(fetch, async data => {
@@ -36,6 +43,10 @@ export class ChunkJoiner {
     return concatBytes(...parts)
   }
 
+  /**
+   * Fetches and reconstructs the full data behind an encrypted chunk tree,
+   * given the root's decryption key.
+   */
   static async collectEncrypted(
     address: Uint8Array,
     key: Uint8Array,
@@ -53,6 +64,11 @@ export class ChunkJoiner {
     return concatBytes(...parts)
   }
 
+  /**
+   * Fetches the chunk at `address` and recursively descends into its
+   * children (skipping any parity references), emitting leaf payloads to
+   * `onData` in order as they're reached.
+   */
   async join(address: Uint8Array, key?: Uint8Array): Promise<void> {
     const raw = await this.fetch(address)
     let rawSpan: bigint

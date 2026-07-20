@@ -4,7 +4,9 @@ import { Reference } from '../bytes/reference.js'
 import { Span } from '../bytes/span.js'
 import { calculateChunkAddress } from './bmt.js'
 
+/** Smallest payload a Content Addressed Chunk can hold, in bytes. */
 export const MIN_PAYLOAD_SIZE = 1
+/** Largest payload a Content Addressed Chunk can hold, in bytes. */
 export const MAX_PAYLOAD_SIZE = 4096
 
 /**
@@ -15,9 +17,6 @@ export const MAX_PAYLOAD_SIZE = 4096
  * - `payload` contains the actual data or the body of the chunk.
  * - `data` contains the full chunk data - `span` and `payload`.
  * - `address` is the Swarm hash (or reference) of the chunk.
- *
- * Note: bee-js's Chunk also has a `toSingleOwnerChunk()` method - deferred
- * here until SOC (a separate, still-unreconciled Unify item) exists.
  */
 export interface Chunk {
   readonly data: Uint8Array
@@ -26,6 +25,11 @@ export interface Chunk {
   address: Reference
 }
 
+/**
+ * Builds a Content Addressed Chunk from a payload (at most 4096 bytes),
+ * computing its BMT address. `span` defaults to the payload's own length -
+ * pass it explicitly when wrapping a larger, already-spanned subtree.
+ */
 export function makeContentAddressedChunk(rawPayload: Bytes | Uint8Array | string, span?: Span | bigint): Chunk {
   if (typeof rawPayload === 'string') {
     rawPayload = Bytes.fromUtf8(rawPayload)
@@ -47,6 +51,10 @@ export function makeContentAddressedChunk(rawPayload: Bytes | Uint8Array | strin
   return { data, span: typedSpan, payload, address }
 }
 
+/**
+ * Parses raw chunk bytes (8-byte span || payload) into a Chunk, recomputing
+ * its address.
+ */
 export function unmarshalContentAddressedChunk(data: Bytes | Uint8Array): Chunk {
   const bytes = new Bytes(data)
 

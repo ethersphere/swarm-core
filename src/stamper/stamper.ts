@@ -54,6 +54,9 @@ export class Stamper {
     this.maxSlot = 2 ** (depth - 16)
   }
 
+  /**
+   * Creates a fresh Stamper for a batch with no chunks stamped yet.
+   */
   static fromBlank(
     signer: PrivateKey | Uint8Array | string,
     batchId: BatchId | Uint8Array | string,
@@ -62,6 +65,9 @@ export class Stamper {
     return new Stamper(new PrivateKey(signer), new BatchId(batchId), new Uint32Array(65536), depth)
   }
 
+  /**
+   * Resumes a Stamper from a previously persisted bucket state (see {@link getState}).
+   */
   static fromState(
     signer: PrivateKey | Uint8Array | string,
     batchId: BatchId | Uint8Array | string,
@@ -71,6 +77,10 @@ export class Stamper {
     return new Stamper(new PrivateKey(signer), new BatchId(batchId), buckets, depth)
   }
 
+  /**
+   * Stamps a chunk address, automatically picking and reserving the next
+   * free slot in its bucket. Throws once a bucket reaches its depth-derived capacity.
+   */
   stamp(address: Uint8Array, timestampMs?: number): EnvelopeWithBatchId {
     const bucket = uint16ToNumber(address, 'BE')
     const height = this.buckets[bucket]!
@@ -84,6 +94,10 @@ export class Stamper {
     return stamp(this.signer, this.batchId, address, height, timestampMs)
   }
 
+  /**
+   * Returns the live bucket-height state, for persisting and later resuming
+   * via {@link fromState}.
+   */
   getState(): Uint32Array {
     return this.buckets
   }

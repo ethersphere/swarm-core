@@ -62,6 +62,10 @@ const IOTA_CONSTANTS = [
   0x80000001, 0x80000000, 0x80008008,
 ]
 
+/**
+ * Hashes `bytes` with Keccak-256 (the original, pre-NIST-finalization
+ * padding used by Ethereum/Swarm - not FIPS-202 SHA3-256).
+ */
 export function keccak256(bytes: Uint8Array): Uint8Array {
   return squeeze(absorb(new Array(50).fill(0) as KeccakState, divideToBlocks(bytes, 0b00000001)))
 }

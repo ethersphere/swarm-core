@@ -4,8 +4,11 @@ import { keccak256 } from '../crypto/keccak.js'
 // initCtr for the span field: ChunkSize / KeyLength = 4096 / 32 = 128
 const SPAN_ENCRYPT_INIT_CTR = 128
 
-// Counter-mode stream cipher: segmentKey = keccak256(keccak256(key || LE32(initCtr+i)))
-// Symmetric — the same function both encrypts and decrypts.
+/**
+ * Counter-mode stream cipher: `segmentKey = keccak256(keccak256(key || LE32(initCtr+i)))`,
+ * XORed 32 bytes at a time against `data`. Symmetric - the same function
+ * both encrypts and decrypts.
+ */
 export function encryptSegments(key: Uint8Array, initCtr: number, data: Uint8Array): Uint8Array {
   const out = new Uint8Array(data.length)
   const buf = new Uint8Array(36)
@@ -25,15 +28,25 @@ export function encryptSegments(key: Uint8Array, initCtr: number, data: Uint8Arr
   return out
 }
 
+/**
+ * Encrypts (or decrypts) an 8-byte chunk span with `key`.
+ */
 export function encryptSpan(key: Uint8Array, spanBytes: Uint8Array): Uint8Array {
   return encryptSegments(key, SPAN_ENCRYPT_INIT_CTR, spanBytes)
 }
 
+/**
+ * Encrypts (or decrypts) a chunk's payload bytes with `key`.
+ */
 export function encryptData(key: Uint8Array, data: Uint8Array): Uint8Array {
   return encryptSegments(key, 0, data)
 }
 
-// encryptSpan / encryptData also serve as their own inverses (XOR cipher).
+/**
+ * Decrypts a full encrypted chunk (8-byte span || up to 4096-byte payload)
+ * with `key`. encryptSpan/encryptData also serve as their own inverses, so
+ * this just applies them to each part.
+ */
 export function decryptChunk(encBytes: Uint8Array, key: Uint8Array): { span: bigint; data: Uint8Array } {
   return {
     span: uint64ToNumber(encryptSpan(key, encBytes.subarray(0, 8)), 'LE'),

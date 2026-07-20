@@ -1,5 +1,8 @@
 import { Bytes } from './bytes.js'
 
+/**
+ * A 32-byte blockchain transaction hash.
+ */
 export class TransactionId extends Bytes {
   static readonly LENGTH = 32
 

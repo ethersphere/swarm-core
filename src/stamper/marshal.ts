@@ -2,6 +2,7 @@ import { concatBytes } from '../bytes/encoding.js'
 import { BatchId } from '../bytes/batch-id.js'
 import { Bytes } from '../bytes/bytes.js'
 
+/** A postage stamp's fields, as produced by signing (e.g. via `stamp()`). */
 export interface Envelope {
   issuer: Uint8Array
   index: Uint8Array
@@ -9,10 +10,15 @@ export interface Envelope {
   signature: Uint8Array
 }
 
+/** An {@link Envelope} with its batch ID, ready to marshal. */
 export interface EnvelopeWithBatchId extends Envelope {
   batchId: BatchId
 }
 
+/**
+ * Marshals a postage stamp's fields into the wire format Bee expects:
+ * `batchId (32) || index (8) || timestamp (8) || signature (65)`.
+ */
 export function marshalStamp(
   signature: Uint8Array,
   batchId: Uint8Array,
@@ -34,6 +40,9 @@ export function marshalStamp(
   return new Bytes(concatBytes(batchId, index, timestamp, signature))
 }
 
+/**
+ * Same as {@link marshalStamp}, taking the fields from an EnvelopeWithBatchId.
+ */
 export function convertEnvelopeToMarshaledStamp(envelope: EnvelopeWithBatchId): Bytes {
   return marshalStamp(envelope.signature, envelope.batchId.toUint8Array(), envelope.timestamp, envelope.index)
 }

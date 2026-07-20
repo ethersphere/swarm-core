@@ -199,9 +199,12 @@ function getParityRows(dataShards: number, parityShards: number): number[][] {
   return rows
 }
 
-// Encodes data shards into parityCount parity shards.
-// Each input shard and each output shard is a Uint8Array of the same length.
-// Data shards are not modified. Compatible with klauspost/reedsolomon's default encoder.
+/**
+ * Encodes `data` shards (all the same length) into `parityCount` parity
+ * shards of that same length, using GF(2^8) Reed-Solomon. Data shards are
+ * not modified. Compatible with klauspost/reedsolomon's default encoder -
+ * the same scheme real Bee nodes use, so this interoperates with them.
+ */
 export function rsEncode(data: Uint8Array[], parityCount: number): Uint8Array[] {
   if (parityCount === 0) return []
   const dataCount = data.length

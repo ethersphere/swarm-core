@@ -29,8 +29,11 @@ function padEndToMultiple(bytes: Uint8Array, multiple: number, paddingByte: numb
   return result
 }
 
-// A single edge in a MantarayNode's trie: the shared path `prefix` leading to
-// `node`. Forks are keyed by their prefix's first byte in the parent's `forks` map.
+/**
+ * A single edge in a MantarayNode's trie: the shared path `prefix` leading
+ * to `node`. Forks are keyed by their prefix's first byte in the parent's
+ * `forks` map.
+ */
 export class Fork {
   prefix: Uint8Array
   node: MantarayNode
@@ -40,8 +43,10 @@ export class Fork {
     this.node = node
   }
 
-  // Merges two forks that share a path prefix, splitting off a new
-  // intermediate node at the point where their prefixes diverge.
+  /**
+   * Merges two forks that share a path prefix, splitting off a new
+   * intermediate node at the point where their prefixes diverge.
+   */
   static split(a: Fork, b: Fork): Fork {
     const commonPart = commonPrefix(a.prefix, b.prefix)
 
@@ -84,6 +89,10 @@ export class Fork {
     return new Fork(commonPart, node)
   }
 
+  /**
+   * Gets the binary representation of the fork (type byte, prefix, self
+   * address, and optional metadata).
+   */
   marshal(): Uint8Array {
     if (!this.node.selfAddress) {
       throw new Error('Fork#marshal node.selfAddress is not set')
@@ -114,6 +123,10 @@ export class Fork {
     return concatBytes(...data)
   }
 
+  /**
+   * Reads a single fork (and its node's selfAddress/metadata) out of a
+   * reader positioned at the start of the fork's bytes.
+   */
   static unmarshal(reader: Uint8ArrayReader, addressLength: number): Fork {
     const type = uint8ToNumber(reader.read(1))
     const prefixLength = uint8ToNumber(reader.read(1))
