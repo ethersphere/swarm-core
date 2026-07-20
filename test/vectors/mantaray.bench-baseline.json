@@ -1,0 +1,11 @@
+{
+  "_env": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "ci": false
+  },
+  "MantarayNode.marshal 100-file directory": {
+    "mean": 0.0016609869579371213,
+    "hz": 602051.686933147
+  }
+}

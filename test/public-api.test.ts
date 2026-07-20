@@ -4,6 +4,7 @@ import * as chunkModule from '../src/chunk/index.js'
 import * as cryptoModule from '../src/crypto/index.js'
 import * as encryptionModule from '../src/encryption/index.js'
 import * as erasureCodingModule from '../src/erasure-coding/index.js'
+import * as mantarayModule from '../src/mantaray/index.js'
 import * as stamperModule from '../src/stamper/index.js'
 import * as rootModule from '../src/index.js'
 
@@ -16,8 +17,11 @@ const BYTES_EXPORTS = [
   'base32ToUint8Array',
   'base64ToUint8Array',
   'binaryToUint8Array',
+  'commonPrefix',
   'concatBytes',
+  'equals',
   'hexToUint8Array',
+  'indexOf',
   'numberToUint16',
   'numberToUint256',
   'numberToUint32',
@@ -98,6 +102,8 @@ const STAMPER_EXPORTS = [
   'getStampEffectiveBytesBreakpoints',
 ]
 
+const MANTARAY_EXPORTS = ['Fork', 'MantarayNode']
+
 // Exports that are data, not callables (e.g. a fixed address constant) -
 // exempted from the "every export is a function" check below.
 const NON_FUNCTION_EXPORTS = new Set(['REPLICAS_OWNER', 'MAX_PAYLOAD_SIZE', 'MIN_PAYLOAD_SIZE'])
@@ -139,6 +145,10 @@ describe('public API contract', () => {
     assertExactExports(stamperModule, STAMPER_EXPORTS, 'stamper')
   })
 
+  it('swarm-core-lib/mantaray exports exactly the expected classes', () => {
+    assertExactExports(mantarayModule, MANTARAY_EXPORTS, 'mantaray')
+  })
+
   it('swarm-core-lib (root) re-exports the union of every implemented subpath', () => {
     assertExactExports(
       rootModule,
@@ -148,6 +158,7 @@ describe('public API contract', () => {
         ...CRYPTO_EXPORTS,
         ...ENCRYPTION_EXPORTS,
         ...ERASURE_CODING_EXPORTS,
+        ...MANTARAY_EXPORTS,
         ...STAMPER_EXPORTS,
       ],
       'root',

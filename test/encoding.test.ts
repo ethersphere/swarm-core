@@ -3,7 +3,10 @@ import {
   base32ToUint8Array,
   base64ToUint8Array,
   binaryToUint8Array,
+  commonPrefix,
+  equals,
   hexToUint8Array,
+  indexOf,
   numberToUint16,
   numberToUint32,
   numberToUint64,
@@ -82,6 +85,50 @@ describe('sliceBytes', () => {
     expect(Array.from(a!)).toEqual([1, 2])
     expect(Array.from(b!)).toEqual([3])
     expect(Array.from(c!)).toEqual([4, 5, 6])
+  })
+})
+
+describe('equals', () => {
+  it('is true for identical content', () => {
+    expect(equals(Uint8Array.from([1, 2, 3]), Uint8Array.from([1, 2, 3]))).toBe(true)
+  })
+
+  it('is false for different lengths', () => {
+    expect(equals(Uint8Array.from([1, 2, 3]), Uint8Array.from([1, 2]))).toBe(false)
+  })
+
+  it('is false for same length but different content', () => {
+    expect(equals(Uint8Array.from([1, 2, 3]), Uint8Array.from([1, 2, 4]))).toBe(false)
+  })
+})
+
+describe('commonPrefix', () => {
+  it('returns the shared leading bytes', () => {
+    expect(Array.from(commonPrefix(Uint8Array.from([1, 2, 3, 9]), Uint8Array.from([1, 2, 3, 4])))).toEqual([1, 2, 3])
+  })
+
+  it('returns an empty array when there is no overlap', () => {
+    expect(commonPrefix(Uint8Array.from([1]), Uint8Array.from([2]))).toHaveLength(0)
+  })
+
+  it('is bounded by the shorter input', () => {
+    expect(Array.from(commonPrefix(Uint8Array.from([1, 2]), Uint8Array.from([1, 2, 3])))).toEqual([1, 2])
+  })
+})
+
+describe('indexOf', () => {
+  it('finds a single-byte needle', () => {
+    expect(indexOf(Uint8Array.from([10, 20, 47, 30]), Uint8Array.from([47]))).toBe(2)
+  })
+
+  it('returns -1 when not found', () => {
+    expect(indexOf(Uint8Array.from([10, 20, 30]), Uint8Array.from([47]))).toBe(-1)
+  })
+
+  it('finds a multi-byte needle and respects the start offset', () => {
+    const haystack = Uint8Array.from([1, 2, 3, 1, 2, 3])
+    expect(indexOf(haystack, Uint8Array.from([2, 3]))).toBe(1)
+    expect(indexOf(haystack, Uint8Array.from([2, 3]), 2)).toBe(4)
   })
 })
 

@@ -6,6 +6,42 @@ export function partition(bytes: Uint8Array, size: number): Uint8Array[] {
   return partitions
 }
 
+export function equals(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) {
+    return false
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false
+    }
+  }
+  return true
+}
+
+export function commonPrefix(one: Uint8Array, other: Uint8Array): Uint8Array {
+  const length = Math.min(one.length, other.length)
+  for (let i = 0; i < length; i++) {
+    if (one[i] !== other[i]) {
+      return one.subarray(0, i)
+    }
+  }
+  return one.subarray(0, length)
+}
+
+export function indexOf(bytes: Uint8Array, value: Uint8Array, start = 0): number {
+  for (let i = start; i < bytes.length; i++) {
+    for (let j = 0; j < value.length; j++) {
+      if (bytes[i + j] !== value[j]) {
+        break
+      }
+      if (j === value.length - 1) {
+        return i
+      }
+    }
+  }
+  return -1
+}
+
 export function concatBytes(...arrays: Uint8Array[]): Uint8Array {
   const totalLength = arrays.reduce((sum, array) => sum + array.length, 0)
   const result = new Uint8Array(totalLength)
