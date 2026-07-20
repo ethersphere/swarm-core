@@ -93,6 +93,12 @@ const ERASURE_CODING_EXPORTS = [
   'getParities',
   'makeErasureBatch',
   'makeIntermediateChunkHandler',
+  'approximateOverheadForRedundancyLevel',
+  'getRedundancyStat',
+  'getRedundancyStats',
+  'decodeRedundancyLevel',
+  'encodeRedundancyLevel',
+  'referenceCount',
 ]
 
 const STAMPER_EXPORTS = [

@@ -4,6 +4,7 @@ import { makeContentAddressedChunk } from '../src/chunk/cac.js'
 import { ChunkJoiner } from '../src/chunk/joiner.js'
 import { ChunkBuilder, ChunkEntry, ChunkSplitter } from '../src/chunk/splitter.js'
 import { encryptData, encryptSpan } from '../src/encryption/stream-cipher.js'
+import { getMaxShards, makeErasureBatch, makeIntermediateChunkHandler } from '../src/erasure-coding/index.js'
 
 // Captures every sealed chunk (leaf and intermediate) as onBatch sees them,
 // so a ChunkJoiner can later fetch them back out by address.
@@ -112,5 +113,82 @@ describe('ChunkSplitter + ChunkJoiner round-trip', () => {
 
     const collected = await ChunkJoiner.collect(root.hash().toUint8Array(), storage.fetch)
     expect(collected).toEqual(new Uint8Array(0))
+  })
+})
+
+describe('ChunkSplitter + ChunkJoiner round-trip with erasure coding', () => {
+  // Regression test: ChunkJoiner used to have no notion of redundancy at all,
+  // so it walked every ref in an intermediate node's payload as if it were a
+  // data child - including the parity refs makeErasureBatch appends after
+  // the real ones - corrupting the reconstructed output with garbage decoded
+  // from parity chunk bytes.
+  it.each([1, 2, 3, 4])('reconstructs a payload split with redundancy level %i, unencrypted', async level => {
+    const storage = makeStorage()
+    const onChunk = async (chunk: ChunkBuilder, key?: Uint8Array) => {
+      await storage.onBatch([{ chunk, key }])
+    }
+    const maxShards = getMaxShards(level, false)
+    const data = Uint8Array.from({ length: 4096 * (maxShards + 3) + 41 }, (_, i) => (i * 11 + level) % 256)
+
+    const splitter = new ChunkSplitter(
+      makeErasureBatch(level, false, onChunk),
+      maxShards,
+      false,
+      makeIntermediateChunkHandler(level),
+    )
+    await splitter.append(data)
+    const root = await splitter.finalize()
+    await onChunk(root)
+
+    const collected = await ChunkJoiner.collect(root.hash().toUint8Array(), storage.fetch)
+    expect(collected).toEqual(data)
+  })
+
+  it('reconstructs an encrypted payload split with redundancy', async () => {
+    const storage = makeStorage()
+    const level = 2
+    const onChunk = async (chunk: ChunkBuilder, key?: Uint8Array) => {
+      await storage.onBatch([{ chunk, key }])
+    }
+    const maxShards = getMaxShards(level, true)
+    const data = Uint8Array.from({ length: 4096 * (maxShards + 2) + 17 }, (_, i) => (i * 13) % 256)
+
+    const splitter = new ChunkSplitter(
+      makeErasureBatch(level, true, onChunk),
+      maxShards,
+      true,
+      makeIntermediateChunkHandler(level),
+    )
+    await splitter.append(data)
+    const root = await splitter.finalize()
+    const { address, key } = root.encryptedHash()
+    const encSpan = encryptSpan(key, numberToUint64(root.span, 'LE'))
+    const encPayload = encryptData(key, root.writer.buffer)
+    storage.put(address.toUint8Array(), concatBytes(encSpan, encPayload))
+
+    const collected = await ChunkJoiner.collectEncrypted(address.toUint8Array(), key, storage.fetch)
+    expect(collected).toEqual(data)
+  })
+
+  it('a small (single-chunk, no parity) redundant payload still reconstructs correctly', async () => {
+    const storage = makeStorage()
+    const level = 1
+    const onChunk = async (chunk: ChunkBuilder, key?: Uint8Array) => {
+      await storage.onBatch([{ chunk, key }])
+    }
+    const data = Uint8Array.from({ length: 500 }, (_, i) => i)
+
+    const splitter = new ChunkSplitter(
+      makeErasureBatch(level, false, onChunk),
+      getMaxShards(level, false),
+      false,
+      makeIntermediateChunkHandler(level),
+    )
+    await splitter.append(data)
+    const root = await splitter.finalize()
+    await onChunk(root)
+
+    const collected = await ChunkJoiner.collect(root.hash().toUint8Array(), storage.fetch)
+    expect(collected).toEqual(data)
   })
 })

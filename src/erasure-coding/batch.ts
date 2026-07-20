@@ -3,6 +3,7 @@ import { ChunkBuilder, ChunkEntry } from '../chunk/splitter.js'
 import { encryptData, encryptSpan } from '../encryption/stream-cipher.js'
 import { getParities } from './levels.js'
 import { rsEncode } from './reed-solomon.js'
+import { encodeRedundancyLevel } from './span.js'
 
 // Constructs a ChunkBuilder from a 4104-byte raw shard (8-byte LE span + 4096-byte data).
 function chunkFromBytes(bytes: Uint8Array): ChunkBuilder {
@@ -21,7 +22,7 @@ function chunkFromBytes(bytes: Uint8Array): ChunkBuilder {
 export function makeIntermediateChunkHandler(level: number): (chunk: ChunkBuilder, hasParity: boolean) => void {
   return (chunk, hasParity) => {
     if (hasParity && level > 0) {
-      chunk.span = (chunk.span & 0x00ffffffffffffffn) | (BigInt(level | 0x80) << 56n)
+      chunk.span = encodeRedundancyLevel(chunk.span, level)
     }
   }
 }

@@ -80,3 +80,80 @@ export function getMaxShards(level: number, encrypted: boolean): number {
   }
   return BRANCHES - getParities(level, BRANCHES, false)
 }
+
+/**
+ * Returns an approximate multiplier for the storage overhead of uploading
+ * `chunks` data shards at the given redundancy level: use it to estimate how
+ * many extra chunks will be stored (chunks * overhead) for that upload.
+ *
+ * Computed directly from getParities' exact tables above rather than a
+ * separate estimation table - bee-js's own redundancy.ts had a second,
+ * independent set of tables for this that turned out to be a rougher
+ * approximation of the same data (one threshold short per level), not a
+ * genuinely different computation.
+ */
+export function approximateOverheadForRedundancyLevel(chunks: number, level: number, encrypted: boolean): number {
+  if (level <= 0 || chunks <= 0) {
+    return 0
+  }
+
+  return getParities(level, chunks, encrypted) / chunks
+}
+
+export interface RedundancyStat {
+  label: string
+  value: number
+  errorTolerance: number
+}
+
+const MEDIUM_STAT: RedundancyStat = { label: 'medium', value: 1, errorTolerance: 0.01 }
+const STRONG_STAT: RedundancyStat = { label: 'strong', value: 2, errorTolerance: 0.05 }
+const INSANE_STAT: RedundancyStat = { label: 'insane', value: 3, errorTolerance: 0.1 }
+const PARANOID_STAT: RedundancyStat = { label: 'paranoid', value: 4, errorTolerance: 0.5 }
+
+/**
+ * Returns descriptive stats (label, level, expected error tolerance) for
+ * every redundancy level above NONE.
+ */
+export function getRedundancyStats(): {
+  medium: RedundancyStat
+  strong: RedundancyStat
+  insane: RedundancyStat
+  paranoid: RedundancyStat
+} {
+  return { medium: MEDIUM_STAT, strong: STRONG_STAT, insane: INSANE_STAT, paranoid: PARANOID_STAT }
+}
+
+/**
+ * Looks up a single redundancy level's stats by name ('medium'/'strong'/
+ * 'insane'/'paranoid', case-insensitive) or by its numeric level (1-4).
+ */
+export function getRedundancyStat(level: string | number): RedundancyStat {
+  if (typeof level === 'string') {
+    switch (level.toLowerCase()) {
+      case 'medium':
+        return MEDIUM_STAT
+      case 'strong':
+        return STRONG_STAT
+      case 'insane':
+        return INSANE_STAT
+      case 'paranoid':
+        return PARANOID_STAT
+      default:
+        throw new Error(`Unknown redundancy level '${level}'`)
+    }
+  }
+
+  switch (level) {
+    case 1:
+      return MEDIUM_STAT
+    case 2:
+      return STRONG_STAT
+    case 3:
+      return INSANE_STAT
+    case 4:
+      return PARANOID_STAT
+    default:
+      throw new Error(`Unknown redundancy level '${level}'`)
+  }
+}
