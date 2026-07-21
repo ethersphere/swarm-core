@@ -4,7 +4,7 @@ import { hexToUint8Array, uint8ArrayToBase32, uint8ArrayToBase64, uint8ArrayToHe
 const DECODER = new TextDecoder()
 const ENCODER = new TextEncoder()
 
-const HEX_PATTERN = /^(0x)?[0-9a-fA-F]*$/
+const HEX_PATTERN = /^(0x)?[0-9a-fA-F]*$/i
 
 function hasToHexMethod(value: unknown): value is { toHex(): string } {
   return typeof value === 'object' && value !== null && typeof (value as { toHex?: unknown }).toHex === 'function'
@@ -30,7 +30,7 @@ export class Bytes {
     if (bytes instanceof Bytes) {
       this.bytes = bytes.bytes
     } else if (typeof bytes === 'string') {
-      if (!HEX_PATTERN.test(bytes) || bytes.replace(/^0x/, '').length % 2 !== 0) {
+      if (!HEX_PATTERN.test(bytes) || bytes.replace(/^0x/i, '').length % 2 !== 0) {
         throw new Error(`Bytes#constructor: invalid hex string: ${bytes}`)
       }
       this.bytes = hexToUint8Array(bytes)

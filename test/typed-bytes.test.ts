@@ -32,6 +32,12 @@ describe('Bytes', () => {
     expect(() => new Bytes('0x0')).toThrow() // odd length
   })
 
+  it('accepts an uppercase 0X prefix and uppercase hex digits', () => {
+    expect(new Bytes('0X010203').toHex()).toBe('010203')
+    expect(new Bytes('0XABCDEF').toHex()).toBe('abcdef')
+    expect(new Bytes('ABCDEF').toHex()).toBe('abcdef')
+  })
+
   it('validates a single expected byte length', () => {
     expect(() => new Bytes(Uint8Array.from([1, 2]), 3)).toThrow()
     expect(new Bytes(Uint8Array.from([1, 2, 3]), 3).length).toBe(3)
