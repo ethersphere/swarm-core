@@ -1,5 +1,5 @@
 {
-  "name": "swarm-core-lib",
+  "name": "swarm-core",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -16,49 +16,89 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./bytes": {
-      "types": "./dist/bytes/index.d.ts",
-      "import": "./dist/bytes/index.js",
-      "require": "./dist/bytes/index.cjs"
+      "import": {
+        "types": "./dist/bytes/index.d.ts",
+        "default": "./dist/bytes/index.js"
+      },
+      "require": {
+        "types": "./dist/bytes/index.d.cts",
+        "default": "./dist/bytes/index.cjs"
+      }
     },
     "./crypto": {
-      "types": "./dist/crypto/index.d.ts",
-      "import": "./dist/crypto/index.js",
-      "require": "./dist/crypto/index.cjs"
+      "import": {
+        "types": "./dist/crypto/index.d.ts",
+        "default": "./dist/crypto/index.js"
+      },
+      "require": {
+        "types": "./dist/crypto/index.d.cts",
+        "default": "./dist/crypto/index.cjs"
+      }
     },
     "./chunk": {
-      "types": "./dist/chunk/index.d.ts",
-      "import": "./dist/chunk/index.js",
-      "require": "./dist/chunk/index.cjs"
+      "import": {
+        "types": "./dist/chunk/index.d.ts",
+        "default": "./dist/chunk/index.js"
+      },
+      "require": {
+        "types": "./dist/chunk/index.d.cts",
+        "default": "./dist/chunk/index.cjs"
+      }
     },
     "./mantaray": {
-      "types": "./dist/mantaray/index.d.ts",
-      "import": "./dist/mantaray/index.js",
-      "require": "./dist/mantaray/index.cjs"
+      "import": {
+        "types": "./dist/mantaray/index.d.ts",
+        "default": "./dist/mantaray/index.js"
+      },
+      "require": {
+        "types": "./dist/mantaray/index.d.cts",
+        "default": "./dist/mantaray/index.cjs"
+      }
     },
     "./erasure-coding": {
-      "types": "./dist/erasure-coding/index.d.ts",
-      "import": "./dist/erasure-coding/index.js",
-      "require": "./dist/erasure-coding/index.cjs"
+      "import": {
+        "types": "./dist/erasure-coding/index.d.ts",
+        "default": "./dist/erasure-coding/index.js"
+      },
+      "require": {
+        "types": "./dist/erasure-coding/index.d.cts",
+        "default": "./dist/erasure-coding/index.cjs"
+      }
     },
     "./encryption": {
-      "types": "./dist/encryption/index.d.ts",
-      "import": "./dist/encryption/index.js",
-      "require": "./dist/encryption/index.cjs"
+      "import": {
+        "types": "./dist/encryption/index.d.ts",
+        "default": "./dist/encryption/index.js"
+      },
+      "require": {
+        "types": "./dist/encryption/index.d.cts",
+        "default": "./dist/encryption/index.cjs"
+      }
     },
     "./stamper": {
-      "types": "./dist/stamper/index.d.ts",
-      "import": "./dist/stamper/index.js",
-      "require": "./dist/stamper/index.cjs"
+      "import": {
+        "types": "./dist/stamper/index.d.ts",
+        "default": "./dist/stamper/index.js"
+      },
+      "require": {
+        "types": "./dist/stamper/index.d.cts",
+        "default": "./dist/stamper/index.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "node scripts/build.mjs && tsc -p tsconfig.build.json",
+    "build": "node scripts/build.mjs && tsc -p tsconfig.build.json && node scripts/copy-cjs-types.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
