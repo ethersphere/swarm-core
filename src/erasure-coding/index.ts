@@ -1,4 +1,4 @@
-export { rsEncode } from './reed-solomon.js'
+export { rsEncode, rsDecode } from './reed-solomon.js'
 export {
   approximateOverheadForRedundancyLevel,
   getMaxShards,

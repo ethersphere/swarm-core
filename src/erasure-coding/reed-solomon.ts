@@ -173,28 +173,32 @@ class GFMatrix {
   }
 }
 
-// Builds the encoding matrix (Vandermonde × inverse of top square) and caches parity rows.
-// This is the default matrix from klauspost/reedsolomon's buildMatrix function.
-const parityRowsCache = new Map<string, number[][]>()
+// Builds the encoding matrix (Vandermonde × inverse of top square). The top
+// `dataShards` rows form the identity (systematic code) so data shards pass
+// through unchanged; the remaining rows are the parity rows. This is the
+// default matrix from klauspost/reedsolomon's buildMatrix function.
+const matrixCache = new Map<string, GFMatrix>()
 
-function getParityRows(dataShards: number, parityShards: number): number[][] {
+function buildMatrix(dataShards: number, parityShards: number): GFMatrix {
   const key = `${dataShards},${parityShards}`
-  let rows = parityRowsCache.get(key)
-  if (!rows) {
+  let matrix = matrixCache.get(key)
+  if (!matrix) {
     const totalShards = dataShards + parityShards
     const vm = GFMatrix.vandermonde(totalShards, dataShards)
     const top = vm.subMatrix(0, 0, dataShards, dataShards)
-    const topInv = top.invert()
-    const matrix = vm.multiply(topInv)
-    rows = []
-    for (let i = 0; i < parityShards; i++) {
-      const row: number[] = []
-      for (let c = 0; c < dataShards; c++) {
-        row.push(matrix.get(dataShards + i, c))
-      }
-      rows.push(row)
-    }
-    parityRowsCache.set(key, rows)
+    matrix = vm.multiply(top.invert())
+    matrixCache.set(key, matrix)
+  }
+  return matrix
+}
+
+function getParityRows(dataShards: number, parityShards: number): number[][] {
+  const matrix = buildMatrix(dataShards, parityShards)
+  const rows: number[][] = []
+  for (let i = 0; i < parityShards; i++) {
+    const row: number[] = []
+    for (let c = 0; c < dataShards; c++) row.push(matrix.get(dataShards + i, c))
+    rows.push(row)
   }
   return rows
 }
@@ -221,4 +225,74 @@ export function rsEncode(data: Uint8Array[], parityCount: number): Uint8Array[] 
     }
     return parity
   })
+}
+
+/**
+ * Reconstructs missing DATA shards from a mix of available data and parity
+ * shards using GF(2^8) Reed-Solomon (erasure decoding) — the inverse of
+ * `rsEncode`. `shards` is index-aligned and `dataCount + parityCount` long:
+ * data shards first, then parity shards. Present shards are equal-length
+ * Uint8Arrays; missing shards are `null`. Returns the `dataCount` data shards
+ * with any missing ones reconstructed (present ones are returned as-is).
+ * Throws if fewer than `dataCount` shards are present (unrecoverable).
+ * Compatible with klauspost/reedsolomon, so it decodes data produced by real
+ * Bee nodes.
+ */
+export function rsDecode(shards: (Uint8Array | null)[], dataCount: number, parityCount: number): Uint8Array[] {
+  const totalCount = dataCount + parityCount
+  if (shards.length !== totalCount) {
+    throw new Error(`rsDecode: expected ${totalCount} shards, got ${shards.length}`)
+  }
+
+  // Fast path: every data shard is already present, nothing to reconstruct.
+  let missingData = false
+  for (let i = 0; i < dataCount; i++) {
+    if (!shards[i]) {
+      missingData = true
+      break
+    }
+  }
+  if (!missingData) return shards.slice(0, dataCount) as Uint8Array[]
+
+  // Gather the first `dataCount` present shards to form a solvable system.
+  const presentRows: number[] = []
+  let shardSize = -1
+  for (let i = 0; i < totalCount && presentRows.length < dataCount; i++) {
+    const shard = shards[i]
+    if (shard) {
+      presentRows.push(i)
+      if (shardSize < 0) shardSize = shard.length
+    }
+  }
+  if (presentRows.length < dataCount) {
+    throw new Error(`rsDecode: only ${presentRows.length} of ${dataCount} required shards present`)
+  }
+
+  // The decode matrix is the inverse of the encoding-matrix rows that
+  // correspond to the present shards; data = decodeMatrix × presentShards.
+  const matrix = buildMatrix(dataCount, parityCount)
+  const sub = new GFMatrix(dataCount, dataCount)
+  for (let r = 0; r < dataCount; r++) {
+    for (let c = 0; c < dataCount; c++) sub.set(r, c, matrix.get(presentRows[r]!, c))
+  }
+  const decodeMatrix = sub.invert()
+
+  const result: Uint8Array[] = []
+  for (let i = 0; i < dataCount; i++) {
+    const existing = shards[i]
+    if (existing) {
+      result.push(existing)
+      continue
+    }
+    const out = new Uint8Array(shardSize)
+    for (let j = 0; j < shardSize; j++) {
+      let val = 0
+      for (let r = 0; r < dataCount; r++) {
+        val ^= gfMul(decodeMatrix.get(i, r), shards[presentRows[r]!]![j]!)
+      }
+      out[j] = val
+    }
+    result.push(out)
+  }
+  return result
 }
