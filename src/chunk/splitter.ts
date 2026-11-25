@@ -144,7 +144,7 @@ export class ChunkSplitter {
   }
 
   private async elevate(level: number): Promise<void> {
-    this.counters[level] = (this.counters[level]! + 1) % (4096 / this.refSize)
+    this.counters[level] = (this.counters[level]! + 1) % this.maxShards
     if (!this.pending[level]) this.pending[level] = []
 
     await this.sealParities(level)
@@ -231,6 +231,15 @@ export class ChunkSplitter {
       await this.elevate(level + 1)
       await this.flushBatch(level + 1)
       this.chunks[level + 1] = this.chunks[level]!
+      // The carried node keeps its pending children and parity flag, so
+      // sealParities still adds parity refs and emits its children.
+      this.pendingEntries[level + 1] = [
+        ...(this.pendingEntries[level + 1] ?? []),
+        ...(this.pendingEntries[level] ?? []),
+      ]
+      this.pendingEntries[level] = []
+      this.hasParity[level + 1] = this.hasParity[level] ?? false
+      this.hasParity[level] = false
 
       return this.finalize(level + 1)
     }

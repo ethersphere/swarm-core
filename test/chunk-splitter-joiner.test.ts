@@ -144,6 +144,48 @@ describe('ChunkSplitter + ChunkJoiner round-trip with erasure coding', () => {
     expect(collected).toEqual(data)
   })
 
+  // Regression test: nodes fill up at getMaxShards(level) data refs (119/107/97/39),
+  // not at 128. The splitter used to wrap its per-level counter at 128 and, when it
+  // carried a lone node up a level in finalize(), dropped that node's pending children
+  // and parity flag. Both gave a wrong tree (and root hash) for sizes around the limits.
+  it.each([
+    [1, [119, 120, 129, 239]],
+    [2, [107, 108, 129, 215]],
+    [3, [97, 98, 129, 195]],
+    [4, [39, 40, 129, 1523]], // 1523 = 39 * 39 + 2: three levels, lone node carried up
+  ] as [number, number[]][])(
+    'builds a complete tree and reconstructs data at node-size limits, redundancy level %i',
+    async (level, chunkCounts) => {
+      const maxShards = getMaxShards(level, false)
+      for (const chunks of chunkCounts) {
+        const storage = makeStorage()
+        const onChunk = async (chunk: ChunkBuilder, key?: Uint8Array) => {
+          await storage.onBatch([{ chunk, key }])
+        }
+        // Distinct first bytes per chunk keep the leaves unique; the +1 leaves a short last chunk.
+        const data = new Uint8Array(chunks * 4096 + 1)
+        for (let i = 0; i < data.length; i += 4096) {
+          data[i] = (i / 4096) & 0xff
+          data[i + 1 < data.length ? i + 1 : i] = ((i / 4096) >> 8) + level
+        }
+
+        const splitter = new ChunkSplitter(
+          makeErasureBatch(level, false, onChunk),
+          maxShards,
+          false,
+          makeIntermediateChunkHandler(level),
+        )
+        await splitter.append(data)
+        const root = await splitter.finalize()
+        await onChunk(root)
+
+        const collected = await ChunkJoiner.collect(root.hash().toUint8Array(), storage.fetch)
+        expect(collected, `level ${level}, ${chunks} chunks`).toEqual(data)
+      }
+    },
+    120_000,
+  )
+
   it('reconstructs an encrypted payload split with redundancy', async () => {
     const storage = makeStorage()
     const level = 2
